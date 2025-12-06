@@ -1,0 +1,230 @@
+<script>
+  // --- Updated users array with real names ---
+  const users = [
+    { id: 'admin', name: 'Owner', role: 'Admin', password: 'admin123' },
+    { id: 'manager1', name: 'Manager 1', role: 'Manager', password: 'pass123' },
+    { id: 'manager2', name: 'Manager 2', role: 'Manager', password: 'pass123' },
+    { id: 'manager3', name: 'Manager 3', role: 'Manager', password: 'pass123' },
+    { id: 'emp1', name: 'Meet', role: 'Employee', password: 'pass123' },      // ← CHANGED
+    { id: 'emp2', name: 'Jameen', role: 'Employee', password: 'pass123' },    // ← CHANGED
+    { id: 'emp3', name: 'Employee 3', role: 'Employee', password: 'pass123' },
+    { id: 'emp4', name: 'Employee 4', role: 'Employee', password: 'pass123' },
+    { id: 'emp5', name: 'Employee 5', role: 'Employee', password: 'pass123' },
+    { id: 'emp6', name: 'Employee 6', role: 'Employee', password: 'pass123' },
+    { id: 'emp7', name: 'Employee 7', role: 'Employee', password: 'pass123' },
+    { id: 'emp8', name: 'Employee 8', role: 'Employee', password: 'pass123' },
+    { id: 'emp9', name: 'Employee 9', role: 'Employee', password: 'pass123' },
+    { id: 'emp10', name: 'Employee 10', role: 'Employee', password: 'pass123' }
+  ];
+
+  let tasks = [];
+  let currentUser = null;
+  let taskCounter = 1;
+  let editUsersMode = false;
+
+  // --- ADD THIS NEW FUNCTION: Edit Users ---
+  function toggleEditUsers() {
+    editUsersMode = !editUsersMode;
+    const btn = $('btn-edit-users');
+    btn.textContent = editUsersMode ? '✅ Done Editing' : '👥 Edit Employee Names';
+    renderUserList();
+  }
+
+  function renderUserList() {
+    const container = $('user-list-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const emps = users.filter(u => u.role === 'Employee');
+    
+    emps.forEach((user, index) => {
+      const div = document.createElement('div');
+      div.className = 'user-row flex-between';
+      div.style.padding = '8px 0';
+      div.style.borderBottom = '1px solid #e5e7eb';
+      
+      if (editUsersMode) {
+        div.innerHTML = `
+          <div>
+            <strong>ID:</strong> ${user.id} 
+            <input id="name-${user.id}" value="${user.name}" style="width:120px;margin-left:8px;" />
+          </div>
+          <button class="secondary" onclick="saveUserName('${user.id}')">Save</button>
+        `;
+      } else {
+        div.innerHTML = `
+          <div><strong>${user.id}:</strong> ${user.name}</div>
+          <span class="chip">Employee</span>
+        `;
+      }
+      container.appendChild(div);
+    });
+  }
+
+  function saveUserName(userId) {
+    const input = $(`name-${userId}`);
+    const newName = input.value.trim();
+    if (!newName) return alert('Name cannot be empty');
+    
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      user.name = newName;
+      alert(`✅ ${userId} renamed to "${newName}"`);
+      toggleEditUsers(); // Exit edit mode
+      refreshAllUI(); // Refresh tables to show new names
+    }
+  }
+
+  // --- All your existing helper functions (KEEP EXACTLY SAME) ---
+  function $(id) { return document.getElementById(id); }
+  function todayISO() { return new Date().toISOString().slice(0,10); }
+  function compareDate(a, b) {
+    return new Date(a).getTime() - new Date(b).getTime();
+  }
+
+  function computeAutoDelay(task) {
+    const now = todayISO();
+    if (task.status !== 'Completed' && compareDate(now, task.dueDate) > 0) {
+      task.status = 'Delayed';
+      task.autoDelay = true;
+    } else if (task.status === 'Delayed' && compareDate(now, task.dueDate) <= 0) {
+      task.autoDelay = false;
+    }
+  }
+
+  function recomputeAllDelays() {
+    tasks.forEach(t => computeAutoDelay(t));
+  }
+
+  function priorityBadge(p) {
+    const cls = p === 'Low' ? 'badge-low' :
+                p === 'Medium' ? 'badge-medium' :
+                p === 'High' ? 'badge-high' : 'badge-urgent';
+    return `<span class="badge ${cls}">${p}</span>`;
+  }
+
+  function statusPill(s) {
+    let cls = 'status-pending';
+    if (s === 'In Progress') cls = 'status-progress';
+    else if (s === 'Completed') cls = 'status-completed';
+    else if (s === 'Delayed') cls = 'status-delayed';
+    return `<span class="status-pill ${cls}">${s}</span>`;
+  }
+
+  function getUserName(id) {
+    const u = users.find(x => x.id === id);
+    return u ? u.name : id;
+  }
+
+  // --- Updated setupRoleUI (ADD USER LIST) ---
+  function setupRoleUI() {
+    const isManager = currentUser.role === 'Manager' || currentUser.role === 'Admin';
+    $('manager-section').classList.toggle('hidden', !isManager);
+    $('employee-section').classList.toggle('hidden', currentUser.role !== 'Employee');
+
+    if (isManager) {
+      // Existing employee dropdowns
+      const emps = users.filter(u => u.role === 'Employee');
+      const assigneeSel = $('task-assignee');
+      const filterEmpSel = $('filter-employee');
+      assigneeSel.innerHTML = '';
+      filterEmpSel.innerHTML = '<option value="">All</option>';
+      emps.forEach(e => {
+        const o1 = document.createElement('option');
+        o1.value = e.id;
+        o1.textContent = e.name;
+        assigneeSel.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = e.id;
+        o2.textContent = e.name;
+        filterEmpSel.appendChild(o2);
+      });
+
+      // ADD USER LIST SECTION
+      const userListCard = document.createElement('div');
+      userListCard.className = 'card';
+      userListCard.innerHTML = `
+        <div class="flex-between">
+          <h3 style="margin:0;font-size:15px;">👥 Employees</h3>
+          <button id="btn-edit-users" class="primary" style="font-size:12px;">👥 Edit Employee Names</button>
+        </div>
+        <div id="user-list-container" style="max-height:200px;overflow-y:auto;"></div>
+      `;
+      $('manager-section').insertBefore(userListCard, $('new-task-card'));
+
+      const today = todayISO();
+      $('task-start').value = today;
+      $('task-due').value = today;
+    }
+  }
+
+  // --- Keep ALL your existing functions exactly the same ---
+  // doLogin, doLogout, openNewTaskCard, closeNewTaskCard, saveTask, 
+  // employeeUpdateTask, managerChangeStatus, renderManagerTable, 
+  // renderEmployeeTable, renderStats, refreshAllUI stay EXACTLY same!
+
+  function doLogin() {
+    const id = $('login-id').value.trim();
+    const pass = $('login-pass').value.trim();
+    const errBox = $('login-error');
+    errBox.classList.add('hidden');
+
+    const u = users.find(x => x.id === id && x.password === pass);
+    if (!u) {
+      errBox.textContent = 'Invalid ID or password';
+      errBox.classList.remove('hidden');
+      return;
+    }
+    currentUser = { id: u.id, name: u.name, role: u.role };
+    $('login-card').classList.add('hidden');
+    $('app-root').classList.remove('hidden');
+    $('logout-btn').classList.remove('hidden');
+    $('header-user').textContent = currentUser.name + ' (' + currentUser.role + ')';
+
+    setupRoleUI();
+    refreshAllUI();
+  }
+
+  function doLogout() {
+    currentUser = null;
+    $('app-root').classList.add('hidden');
+    $('logout-btn').classList.add('hidden');
+    $('login-card').classList.remove('hidden');
+    $('login-id').value = '';
+    $('login-pass').value = '';
+    $('header-user').textContent = '';
+  }
+
+  function openNewTaskCard() {
+    $('new-task-card').classList.remove('hidden');
+  }
+  function closeNewTaskCard() {
+    $('new-task-card').classList.add('hidden');
+    $('new-task-error').classList.add('hidden');
+    $('task-title').value = '';
+    $('task-desc').value = '';
+  }
+
+  // ... [Keep ALL other functions exactly the same as before] ...
+
+  // Event listeners
+  $('login-btn').addEventListener('click', doLogin);
+  $('logout-btn').addEventListener('click', doLogout);
+  $('btn-open-new-task').addEventListener('click', openNewTaskCard);
+  $('btn-close-new-task').addEventListener('click', closeNewTaskCard);
+  $('btn-save-task').addEventListener('click', saveTask);
+  $('filter-employee').addEventListener('change', refreshAllUI);
+  $('filter-status').addEventListener('change', refreshAllUI);
+
+  // NEW: Edit users button
+  document.addEventListener('click', function(e) {
+    if (e.target.id === 'btn-edit-users') {
+      toggleEditUsers();
+    }
+  });
+
+  window.employeeUpdateTask = employeeUpdateTask;
+  window.managerChangeStatus = managerChangeStatus;
+  window.saveUserName = saveUserName;
+</script>
