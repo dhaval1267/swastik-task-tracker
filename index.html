@@ -1,12 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Swastik Task Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background:#f3f4f6; color:#111827; }
+    header { background:#111827; color:#f9fafb; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; }
+    header h1 { margin:0; font-size:18px; }
+    header span { font-size:13px; opacity:0.9; }
+    button { cursor:pointer; border-radius:4px; border:1px solid transparent; padding:6px 10px; font-size:13px; }
+    button.primary { background:#2563eb; color:#fff; }
+    button.secondary { background:#e5e7eb; color:#111827; }
+    button.danger { background:#dc2626; color:#fff; }
+    button:disabled { opacity:0.6; cursor:not-allowed; }
+    .container { max-width:1100px; margin:16px auto; padding:0 10px 20px; }
+    .card { background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); padding:16px; margin-bottom:16px; }
+    #login-card { max-width:380px; margin:40px auto; }
+    label { font-size:13px; display:block; margin-bottom:4px; }
+    input, select, textarea { width:100%; padding:7px 8px; margin-bottom:10px; border-radius:4px; border:1px solid #d1d5db; font-size:13px; }
+    textarea { resize:vertical; min-height:60px; }
+    .error { color:#b91c1c; font-size:12px; margin-bottom:8px; }
+    .badge { display:inline-block; padding:2px 6px; border-radius:999px; font-size:11px; }
+    .badge-low { background:#e0f2fe; color:#0369a1; }
+    .badge-medium { background:#fef3c7; color:#92400e; }
+    .badge-high { background:#fee2e2; color:#b91c1c; }
+    .badge-urgent { background:#7f1d1d; color:#fee2e2; }
+    .status-pill { padding:2px 6px; border-radius:999px; font-size:11px; }
+    .status-pending { background:#e5e7eb; }
+    .status-progress { background:#dbeafe; color:#1d4ed8; }
+    .status-completed { background:#dcfce7; color:#15803d; }
+    .status-delayed { background:#fee2e2; color:#b91c1c; }
+    .flex { display:flex; gap:10px; flex-wrap:wrap; }
+    .flex-between { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; }
+    th, td { border-bottom:1px solid #e5e7eb; padding:6px 4px; text-align:left; vertical-align:top; }
+    th { font-weight:600; background:#f9fafb; }
+    tr.delayed-row { background:#fef2f2; }
+    @media (max-width:768px) {
+      th:nth-child(5), td:nth-child(5),
+      th:nth-child(6), td:nth-child(6),
+      th:nth-child(7), td:nth-child(7) { display:none; }
+    }
+    .chip { background:#e5e7eb; border-radius:999px; padding:2px 8px; font-size:11px; margin:2px 2px 0 0; display:inline-block; }
+    .stats { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+    .stat-box { background:#f9fafb; border-radius:6px; padding:6px 8px; font-size:12px; }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Swastik Task Tracker</h1>
+    <span id="header-user"></span>
+  </div>
+  <button id="logout-btn" class="secondary hidden">Logout</button>
+</header>
+
+<div class="container">
+  <div id="login-card" class="card">
+    <h2 style="margin-top:0;font-size:18px;">Login</h2>
+    <p style="font-size:13px;margin-top:4px;">
+      Demo accounts:
+      <br />Manager: <b>manager1 / pass123</b>
+      <br />Employee: <b>emp1 / pass123</b>
+    </p>
+    <div id="login-error" class="error hidden"></div>
+    <label for="login-id">User ID</label>
+    <input id="login-id" placeholder="e.g. manager1 or emp1" />
+    <label for="login-pass">Password</label>
+    <input id="login-pass" type="password" placeholder="Password" />
+    <button id="login-btn" class="primary" style="width:100%;margin-top:4px;">Login</button>
+  </div>
+
+  <div id="app-root" class="hidden">
+    <div id="manager-section" class="hidden">
+      <div class="card">
+        <div class="flex-between">
+          <h2 style="margin:0;font-size:17px;">Manager Dashboard</h2>
+          <button class="primary" id="btn-open-new-task">+ New Task</button>
+        </div>
+        <div class="stats" id="manager-stats"></div>
+      </div>
+
+      <div class="card hidden" id="new-task-card">
+        <div class="flex-between">
+          <h3 style="margin:0;font-size:15px;">Create / Assign Task</h3>
+          <button class="secondary" id="btn-close-new-task">Close</button>
+        </div>
+        <div id="new-task-error" class="error hidden"></div>
+        <div class="flex">
+          <div style="flex:1 1 220px;">
+            <label>Title</label>
+            <input id="task-title" />
+          </div>
+          <div style="flex:1 1 160px;">
+            <label>Assign To (Employee)</label>
+            <select id="task-assignee"></select>
+          </div>
+          <div style="flex:1 1 120px;">
+            <label>Priority</label>
+            <select id="task-priority">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+        <label>Description</label>
+        <textarea id="task-desc"></textarea>
+
+        <div class="flex">
+          <div style="flex:1 1 150px;">
+            <label>Start Date</label>
+            <input id="task-start" type="date" />
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>Due Date</label>
+            <input id="task-due" type="date" />
+          </div>
+        </div>
+        <button class="primary" id="btn-save-task">Save Task</button>
+      </div>
+
+      <div class="card">
+        <div class="flex-between">
+          <h3 style="margin:0;font-size:15px;">Employees</h3>
+        </div>
+        <div id="user-list-container" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+
+      <div class="card">
+        <div class="flex">
+          <div style="flex:1 1 160px;">
+            <label>Filter by Employee</label>
+            <select id="filter-employee">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div style="flex:1 1 160px;">
+            <label>Filter by Status</label>
+            <select id="filter-status">
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Delayed">Delayed</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px;">All Tasks</h3>
+        <div style="overflow-x:auto;">
+          <table id="tasks-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Employee</th>
+                <th>Priority</th>
+                <th>Start</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="employee-section" class="hidden">
+      <div class="card">
+        <h2 style="margin:0;font-size:17px;">My Tasks</h2>
+        <div class="stats" id="employee-stats"></div>
+      </div>
+
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table id="my-tasks-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Priority</th>
+                <th>Start</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th>Notes / Update</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  // --- Updated users array with real names ---
   const users = [
     { id: 'admin', name: 'Owner', role: 'Admin', password: 'admin123' },
     { id: 'manager1', name: 'Manager 1', role: 'Manager', password: 'pass123' },
     { id: 'manager2', name: 'Manager 2', role: 'Manager', password: 'pass123' },
     { id: 'manager3', name: 'Manager 3', role: 'Manager', password: 'pass123' },
-    { id: 'emp1', name: 'Meet', role: 'Employee', password: 'pass123' },      // ← CHANGED
-    { id: 'emp2', name: 'Jameen', role: 'Employee', password: 'pass123' },    // ← CHANGED
+    { id: 'emp1', name: 'Meet', role: 'Employee', password: 'pass123' },
+    { id: 'emp2', name: 'Jameen', role: 'Employee', password: 'pass123' },
     { id: 'emp3', name: 'Employee 3', role: 'Employee', password: 'pass123' },
     { id: 'emp4', name: 'Employee 4', role: 'Employee', password: 'pass123' },
     { id: 'emp5', name: 'Employee 5', role: 'Employee', password: 'pass123' },
@@ -20,67 +224,10 @@
   let tasks = [];
   let currentUser = null;
   let taskCounter = 1;
-  let editUsersMode = false;
 
-  // --- ADD THIS NEW FUNCTION: Edit Users ---
-  function toggleEditUsers() {
-    editUsersMode = !editUsersMode;
-    const btn = $('btn-edit-users');
-    btn.textContent = editUsersMode ? '✅ Done Editing' : '👥 Edit Employee Names';
-    renderUserList();
-  }
-
-  function renderUserList() {
-    const container = $('user-list-container');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    const emps = users.filter(u => u.role === 'Employee');
-    
-    emps.forEach((user, index) => {
-      const div = document.createElement('div');
-      div.className = 'user-row flex-between';
-      div.style.padding = '8px 0';
-      div.style.borderBottom = '1px solid #e5e7eb';
-      
-      if (editUsersMode) {
-        div.innerHTML = `
-          <div>
-            <strong>ID:</strong> ${user.id} 
-            <input id="name-${user.id}" value="${user.name}" style="width:120px;margin-left:8px;" />
-          </div>
-          <button class="secondary" onclick="saveUserName('${user.id}')">Save</button>
-        `;
-      } else {
-        div.innerHTML = `
-          <div><strong>${user.id}:</strong> ${user.name}</div>
-          <span class="chip">Employee</span>
-        `;
-      }
-      container.appendChild(div);
-    });
-  }
-
-  function saveUserName(userId) {
-    const input = $(`name-${userId}`);
-    const newName = input.value.trim();
-    if (!newName) return alert('Name cannot be empty');
-    
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      user.name = newName;
-      alert(`✅ ${userId} renamed to "${newName}"`);
-      toggleEditUsers(); // Exit edit mode
-      refreshAllUI(); // Refresh tables to show new names
-    }
-  }
-
-  // --- All your existing helper functions (KEEP EXACTLY SAME) ---
   function $(id) { return document.getElementById(id); }
   function todayISO() { return new Date().toISOString().slice(0,10); }
-  function compareDate(a, b) {
-    return new Date(a).getTime() - new Date(b).getTime();
-  }
+  function compareDate(a, b) { return new Date(a).getTime() - new Date(b).getTime(); }
 
   function computeAutoDelay(task) {
     const now = todayISO();
@@ -91,10 +238,7 @@
       task.autoDelay = false;
     }
   }
-
-  function recomputeAllDelays() {
-    tasks.forEach(t => computeAutoDelay(t));
-  }
+  function recomputeAllDelays() { tasks.forEach(t => computeAutoDelay(t)); }
 
   function priorityBadge(p) {
     const cls = p === 'Low' ? 'badge-low' :
@@ -102,7 +246,6 @@
                 p === 'High' ? 'badge-high' : 'badge-urgent';
     return `<span class="badge ${cls}">${p}</span>`;
   }
-
   function statusPill(s) {
     let cls = 'status-pending';
     if (s === 'In Progress') cls = 'status-progress';
@@ -110,59 +253,23 @@
     else if (s === 'Delayed') cls = 'status-delayed';
     return `<span class="status-pill ${cls}">${s}</span>`;
   }
-
   function getUserName(id) {
     const u = users.find(x => x.id === id);
     return u ? u.name : id;
   }
 
-  // --- Updated setupRoleUI (ADD USER LIST) ---
-  function setupRoleUI() {
-    const isManager = currentUser.role === 'Manager' || currentUser.role === 'Admin';
-    $('manager-section').classList.toggle('hidden', !isManager);
-    $('employee-section').classList.toggle('hidden', currentUser.role !== 'Employee');
-
-    if (isManager) {
-      // Existing employee dropdowns
-      const emps = users.filter(u => u.role === 'Employee');
-      const assigneeSel = $('task-assignee');
-      const filterEmpSel = $('filter-employee');
-      assigneeSel.innerHTML = '';
-      filterEmpSel.innerHTML = '<option value="">All</option>';
-      emps.forEach(e => {
-        const o1 = document.createElement('option');
-        o1.value = e.id;
-        o1.textContent = e.name;
-        assigneeSel.appendChild(o1);
-
-        const o2 = document.createElement('option');
-        o2.value = e.id;
-        o2.textContent = e.name;
-        filterEmpSel.appendChild(o2);
-      });
-
-      // ADD USER LIST SECTION
-      const userListCard = document.createElement('div');
-      userListCard.className = 'card';
-      userListCard.innerHTML = `
-        <div class="flex-between">
-          <h3 style="margin:0;font-size:15px;">👥 Employees</h3>
-          <button id="btn-edit-users" class="primary" style="font-size:12px;">👥 Edit Employee Names</button>
-        </div>
-        <div id="user-list-container" style="max-height:200px;overflow-y:auto;"></div>
-      `;
-      $('manager-section').insertBefore(userListCard, $('new-task-card'));
-
-      const today = todayISO();
-      $('task-start').value = today;
-      $('task-due').value = today;
-    }
+  function renderUserList() {
+    const container = $('user-list-container');
+    container.innerHTML = '';
+    const emps = users.filter(u => u.role === 'Employee');
+    emps.forEach(u => {
+      const div = document.createElement('div');
+      div.className = 'flex-between';
+      div.style.padding = '4px 0';
+      div.innerHTML = `<span><strong>${u.id}:</strong> ${u.name}</span><span class="chip">Employee</span>`;
+      container.appendChild(div);
+    });
   }
-
-  // --- Keep ALL your existing functions exactly the same ---
-  // doLogin, doLogout, openNewTaskCard, closeNewTaskCard, saveTask, 
-  // employeeUpdateTask, managerChangeStatus, renderManagerTable, 
-  // renderEmployeeTable, renderStats, refreshAllUI stay EXACTLY same!
 
   function doLogin() {
     const id = $('login-id').value.trim();
@@ -181,7 +288,6 @@
     $('app-root').classList.remove('hidden');
     $('logout-btn').classList.remove('hidden');
     $('header-user').textContent = currentUser.name + ' (' + currentUser.role + ')';
-
     setupRoleUI();
     refreshAllUI();
   }
@@ -196,9 +302,35 @@
     $('header-user').textContent = '';
   }
 
-  function openNewTaskCard() {
-    $('new-task-card').classList.remove('hidden');
+  function setupRoleUI() {
+    const isManager = currentUser.role === 'Manager' || currentUser.role === 'Admin';
+    $('manager-section').classList.toggle('hidden', !isManager);
+    $('employee-section').classList.toggle('hidden', currentUser.role !== 'Employee');
+
+    if (isManager) {
+      const emps = users.filter(u => u.role === 'Employee');
+      const assigneeSel = $('task-assignee');
+      const filterEmpSel = $('filter-employee');
+      assigneeSel.innerHTML = '';
+      filterEmpSel.innerHTML = '<option value="">All</option>';
+      emps.forEach(e => {
+        const o1 = document.createElement('option');
+        o1.value = e.id;
+        o1.textContent = e.name;
+        assigneeSel.appendChild(o1);
+        const o2 = document.createElement('option');
+        o2.value = e.id;
+        o2.textContent = e.name;
+        filterEmpSel.appendChild(o2);
+      });
+      const today = todayISO();
+      $('task-start').value = today;
+      $('task-due').value = today;
+      renderUserList();
+    }
   }
+
+  function openNewTaskCard() { $('new-task-card').classList.remove('hidden'); }
   function closeNewTaskCard() {
     $('new-task-card').classList.add('hidden');
     $('new-task-error').classList.add('hidden');
@@ -206,9 +338,189 @@
     $('task-desc').value = '';
   }
 
-  // ... [Keep ALL other functions exactly the same as before] ...
+  function saveTask() {
+    const title = $('task-title').value.trim();
+    const assignee = $('task-assignee').value;
+    const priority = $('task-priority').value;
+    const start = $('task-start').value;
+    const due = $('task-due').value;
+    const desc = $('task-desc').value.trim();
+    const errBox = $('new-task-error');
+    errBox.classList.add('hidden');
 
-  // Event listeners
+    if (!title || !assignee || !start || !due) {
+      errBox.textContent = 'Title, assignee, start date and due date are required.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+    if (compareDate(due, start) < 0) {
+      errBox.textContent = 'Due date cannot be before start date.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+
+    const task = {
+      id: 'T' + String(taskCounter++).padStart(3, '0'),
+      title,
+      description: desc,
+      assignedBy: currentUser.id,
+      assignedTo: assignee,
+      priority,
+      startDate: start,
+      dueDate: due,
+      status: 'Pending',
+      notes: [],
+      autoDelay: false,
+      dateCompleted: null,
+      lastUpdated: new Date().toISOString()
+    };
+    computeAutoDelay(task);
+    tasks.push(task);
+    closeNewTaskCard();
+    refreshAllUI();
+  }
+
+  function employeeUpdateTask(taskId) {
+    const statusSel = $('status-' + taskId);
+    const noteInput = $('note-' + taskId);
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    const newStatus = statusSel.value;
+    const newNote = noteInput.value.trim();
+
+    t.status = newStatus;
+    if (newStatus === 'Completed') {
+      t.dateCompleted = todayISO();
+    }
+    t.lastUpdated = new Date().toISOString();
+    if (newNote) {
+      t.notes.push({ by: currentUser.id, text: newNote, at: new Date().toLocaleString() });
+      noteInput.value = '';
+    }
+    computeAutoDelay(t);
+    refreshAllUI();
+  }
+
+  function managerChangeStatus(taskId, newStatus) {
+    const t = tasks.find(x => x.id === taskId);
+    if (!t) return;
+    t.status = newStatus;
+    if (newStatus === 'Completed') t.dateCompleted = todayISO();
+    computeAutoDelay(t);
+    t.lastUpdated = new Date().toISOString();
+    refreshAllUI();
+  }
+
+  function renderManagerTable() {
+    const tbody = $('tasks-table').querySelector('tbody');
+    tbody.innerHTML = '';
+    const empFilter = $('filter-employee').value;
+    const statusFilter = $('filter-status').value;
+    let viewTasks = tasks.slice().sort((a,b) => compareDate(a.dueDate, b.dueDate));
+    viewTasks = viewTasks.filter(t => {
+      if (empFilter && t.assignedTo !== empFilter) return false;
+      if (statusFilter && t.status !== statusFilter) return false;
+      return true;
+    });
+    viewTasks.forEach(t => {
+      const tr = document.createElement('tr');
+      if (t.status === 'Delayed') tr.classList.add('delayed-row');
+      const notesHtml = t.notes.map(n => `<div class="chip">${getUserName(n.by)}: ${n.text}</div>`).join('');
+      tr.innerHTML = `
+        <td>${t.id}</td>
+        <td>${t.title}</td>
+        <td>${getUserName(t.assignedTo)}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${t.startDate}</td>
+        <td>${t.dueDate}</td>
+        <td>${statusPill(t.status)}</td>
+        <td>${notesHtml || '-'}</td>
+        <td>
+          <button class="secondary" onclick="managerChangeStatus('${t.id}','In Progress')">In Progress</button>
+          <button class="secondary" onclick="managerChangeStatus('${t.id}','Completed')">Done</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderEmployeeTable() {
+    const tbody = $('my-tasks-table').querySelector('tbody');
+    tbody.innerHTML = '';
+    const myTasks = tasks.filter(t => t.assignedTo === currentUser.id)
+                         .sort((a,b) => compareDate(a.dueDate, b.dueDate));
+    myTasks.forEach(t => {
+      const tr = document.createElement('tr');
+      if (t.status === 'Delayed') tr.classList.add('delayed-row');
+      const notesHtml = t.notes.map(n => `<div class="chip">${getUserName(n.by)}: ${n.text}</div>`).join('');
+      tr.innerHTML = `
+        <td>${t.title}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${t.startDate}</td>
+        <td>${t.dueDate}</td>
+        <td>${statusPill(t.status)}</td>
+        <td>
+          <div style="margin-bottom:4px;">${notesHtml || '<span style="font-size:11px;color:#6b7280;">No notes yet</span>'}</div>
+          <select id="status-${t.id}" style="margin-bottom:4px;">
+            <option value="Pending" ${t.status==='Pending'?'selected':''}>Pending</option>
+            <option value="In Progress" ${t.status==='In Progress'?'selected':''}>In Progress</option>
+            <option value="Completed" ${t.status==='Completed'?'selected':''}>Completed</option>
+          </select>
+          <input id="note-${t.id}" placeholder="Add note (optional)" />
+          <button class="primary" style="margin-top:4px;" onclick="employeeUpdateTask('${t.id}')">Update</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderStats() {
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.status === 'Completed').length;
+    const delayed = tasks.filter(t => t.status === 'Delayed').length;
+    const today = todayISO();
+    const dueToday = tasks.filter(t => t.status !== 'Completed' && t.dueDate === today).length;
+
+    if (currentUser.role === 'Manager' || currentUser.role === 'Admin') {
+      const box = $('manager-stats');
+      box.innerHTML = '';
+      [{label:'Total tasks',value:total},
+       {label:'Completed',value:completed},
+       {label:'Delayed',value:delayed},
+       {label:'Due today',value:dueToday}].forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'stat-box';
+        div.innerHTML = `<strong>${s.value}</strong> ${s.label}`;
+        box.appendChild(div);
+      });
+    }
+
+    if (currentUser.role === 'Employee') {
+      const mine = tasks.filter(t => t.assignedTo === currentUser.id);
+      const totalM = mine.length;
+      const doneM = mine.filter(t => t.status === 'Completed').length;
+      const delayedM = mine.filter(t => t.status === 'Delayed').length;
+      const dueTodayM = mine.filter(t => t.status !== 'Completed' && t.dueDate === today).length;
+      const boxE = $('employee-stats');
+      boxE.innerHTML = '';
+      [{label:'My tasks',value:totalM},
+       {label:'Completed',value:doneM},
+       {label:'Delayed',value:delayedM},
+       {label:'Due today',value:dueTodayM}].forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'stat-box';
+        div.innerHTML = `<strong>${s.value}</strong> ${s.label}`;
+        boxE.appendChild(div);
+      });
+    }
+  }
+
+  function refreshAllUI() {
+    recomputeAllDelays();
+    if (!currentUser) return;
+    if (currentUser.role === 'Manager' || currentUser.role === 'Admin') renderManagerTable();
+    if (currentUser.role === 'Employee') renderEmployeeTable();
+    renderStats();
+  }
+
   $('login-btn').addEventListener('click', doLogin);
   $('logout-btn').addEventListener('click', doLogout);
   $('btn-open-new-task').addEventListener('click', openNewTaskCard);
@@ -217,14 +529,8 @@
   $('filter-employee').addEventListener('change', refreshAllUI);
   $('filter-status').addEventListener('change', refreshAllUI);
 
-  // NEW: Edit users button
-  document.addEventListener('click', function(e) {
-    if (e.target.id === 'btn-edit-users') {
-      toggleEditUsers();
-    }
-  });
-
   window.employeeUpdateTask = employeeUpdateTask;
   window.managerChangeStatus = managerChangeStatus;
-  window.saveUserName = saveUserName;
 </script>
+</body>
+</html>
