@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Swastik Task Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing:border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin:0; background:#f3f4f6; color:#111827; }
+    header { background:#111827; color:#f9fafb; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:18px; }
+    .container { max-width:1100px; margin:16px auto; padding:0 10px 20px; }
+    .card { background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); padding:16px; margin-bottom:16px; }
+    .hidden { display:none !important; }
+    label { font-size:13px; display:block; margin-bottom:4px; }
+    input, select { width:100%; padding:7px 8px; margin-bottom:10px; border-radius:4px; border:1px solid #d1d5db; font-size:13px; }
+    button { cursor:pointer; border-radius:4px; border:1px solid transparent; padding:6px 10px; font-size:13px; }
+    button.primary { background:#2563eb; color:#fff; }
+    button.secondary { background:#e5e7eb; color:#111827; }
+    .error { color:#b91c1c; font-size:12px; margin-bottom:8px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { padding:6px 4px; border-bottom:1px solid #e5e7eb; text-align:left; }
+    th { background:#f9fafb; }
+    tr.delayed-row { background:#fee2e2; }
+    tr.due-today-row { background:#fef9c3; }
+    .chip { background:#e5e7eb; border-radius:999px; padding:2px 8px; font-size:11px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Swastik Task Tracker</h1>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div id="header-user"></div>
+    <button id="btn-logout" class="secondary hidden">Logout</button>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Login -->
+  <div id="login-card" class="card">
+    <h2 style="margin-top:0;font-size:18px;">Login</h2>
+    <div id="login-error" class="error hidden"></div>
+    <label for="login-id">User ID</label>
+    <input id="login-id" placeholder="e.g. manager1 or emp1" />
+    <label for="login-pass">Password</label>
+    <input id="login-pass" type="password" placeholder="Password" />
+    <button id="login-btn" class="primary" style="width:100%;margin-top:4px;">Login</button>
+  </div>
+
+  <!-- Manager dashboard -->
+  <div id="manager-section" class="hidden">
+    <!-- Summary cards -->
+    <div class="card" id="manager-summary">
+      <h2 style="margin:0;font-size:18px;">Manager Dashboard</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+        <div style="background:#f9fafb;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Total tasks</div>
+          <strong id="sum-total">0</strong>
+        </div>
+        <div style="background:#f9fafb;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Completed</div>
+          <strong id="sum-completed">0</strong>
+        </div>
+        <div style="background:#fee2e2;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Delayed</div>
+          <strong id="sum-delayed">0</strong>
+        </div>
+        <div style="background:#dbeafe;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Due today</div>
+          <strong id="sum-today">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters + New Task -->
+    <div class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+        <div style="flex:1 1 160px;">
+          <label for="filter-employee">Employee</label>
+          <select id="filter-employee">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div style="flex:1 1 160px;">
+          <label for="filter-status">Status</label>
+          <select id="filter-status">
+            <option value="">All</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Delayed">Delayed</option>
+          </select>
+        </div>
+        <div style="flex:0 0 auto;margin-left:auto;">
+          <button id="btn-new-task" class="primary">+ New Task</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employees card (rename) -->
+    <div class="card" id="employees-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0 0 8px 0;font-size:15px;">Employees</h3>
+        <button id="btn-toggle-edit-emps" class="secondary" data-editing="false">Edit names</button>
+      </div>
+      <div id="employees-list"></div>
+    </div>
+
+    <!-- New Task form -->
+    <div class="card hidden" id="new-task-card">
+      <h3 style="margin:0 0 8px 0;font-size:15px;">New Task</h3>
+      <div id="new-task-error" class="error hidden"></div>
+
+      <label>Title</label>
+      <input id="task-title" placeholder="Task title" />
+
+      <label>Description</label>
+      <input id="task-desc" placeholder="Short description (optional)" />
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <div style="flex:1 1 160px;">
+          <label>Assign to (employee)</label>
+          <select id="task-assignee"></select>
+        </div>
+        <div style="flex:1 1 120px;">
+          <label>Priority</label>
+          <select id="task-priority">
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;">
+        <div style="flex:1 1 160px;">
+          <label>Start date</label>
+          <input id="task-start" type="date" />
+        </div>
+        <div style="flex:1 1 160px;">
+          <label>Due date</label>
+          <input id="task-due" type="date" />
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="btn-save-task" class="primary">Save task</button>
+        <button id="btn-cancel-task" class="secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Tasks table -->
+    <div class="card">
+      <h3 style="margin:0 0 8px 0;font-size:15px;">All Tasks</h3>
+      <div style="overflow-x:auto;">
+        <table id="tasks-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Employee</th>
+              <th>Priority</th>
+              <th>Start</th>
+              <th>Due</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tasks-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee dashboard -->
+  <div id="employee-section" class="hidden">
+    <div class="card">
+      <h2 style="margin:0;font-size:18px;">My Tasks</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+        <div style="background:#f9fafb;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>My tasks</div>
+          <strong id="my-total">0</strong>
+        </div>
+        <div style="background:#f9fafb;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Completed</div>
+          <strong id="my-completed">0</strong>
+        </div>
+        <div style="background:#fee2e2;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Delayed</div>
+          <strong id="my-delayed">0</strong>
+        </div>
+        <div style="background:#dbeafe;border-radius:6px;padding:8px 10px;font-size:12px;min-width:120px;">
+          <div>Due today</div>
+          <strong id="my-today">0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px 0;font-size:15px;">My Tasks List</h3>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Priority</th>
+              <th>Start</th>
+              <th>Due</th>
+              <th>Status</th>
+              <th>Update</th>
+            </tr>
+          </thead>
+          <tbody id="my-tasks-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ====== 1. Local users (for demo login only) ====== */
+  const users = [
+    { id:'manager1', name:'Manager 1', role:'Manager', password:'pass123' },
+    { id:'emp1', name:'Employee 1', role:'Employee', password:'pass123' },
+    { id:'emp2', name:'Employee 2', role:'Employee', password:'pass123' },
+    { id:'emp3', name:'Employee 3', role:'Employee', password:'pass123' },
+    { id:'emp4', name:'Employee 4', role:'Employee', password:'pass123' },
+    { id:'emp5', name:'Employee 5', role:'Employee', password:'pass123' },
+    { id:'emp6', name:'Employee 6', role:'Employee', password:'pass123' },
+    { id:'emp7', name:'Employee 7', role:'Employee', password:'pass123' },
+    { id:'emp8', name:'Employee 8', role:'Employee', password:'pass123' },
+    { id:'emp9', name:'Employee 9', role:'Employee', password:'pass123' }
+  ];
+
+  let currentUser = null;
+  let tasks = []; // local cache of tasks from backend
+
+  function $(id){ return document.getElementById(id); }
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+  function getUserName(id) {
+    const u = users.find(x => x.id === id);
+    return u ? u.name : id;
+  }
+
+  function computeFlags(task) {
+    const today = todayISO();
+    task.isDelayed = (task.status !== 'Completed' && task.due_date < today);
+    task.isDueToday = (task.status !== 'Completed' && task.due_date === today);
+  }
+
+  /* ====== 2. API helpers (Node.js backend) ====== */
+
+  async function loadTasksFromBackend() {
+    try {
+      const res = await fetch('http://localhost:5000/api/tasks');
+      tasks = await res.json();
+      renderManagerView();
+      if (currentUser && currentUser.role === 'Employee') {
+        renderEmployeeView();
+      }
+    } catch (err) {
+      console.error('Error loading tasks', err);
+      alert('Error loading tasks from server.');
+    }
+  }
+
+  async function createTaskInBackend(task) {
+    try {
+      const apiTask = {
+        title: task.title,
+        description: task.description,
+        assignee: task.assigned_to,
+        priority: task.priority,
+        start_date: task.start_date,
+        due_date: task.due_date,
+        status: task.status
+      };
+
+      const res = await fetch('http://localhost:5000/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiTask)
+      });
+
+      if (!res.ok) throw new Error('Failed to create task');
+      await loadTasksFromBackend();
+    } catch (err) {
+      console.error('Error creating task', err);
+      alert('Could not create task on server.');
+    }
+  }
+
+  async function updateTaskStatusInBackend(id, newStatus) {
+    // For now, just reload from backend (no update API yet)
+    await loadTasksFromBackend();
+  }
+
+  /* ====== 3. UI helpers: employees card ====== */
+
+  function renderEmployeesCard(editing) {
+    const wrap = $('employees-list');
+    wrap.innerHTML = '';
+    users.filter(u => u.role === 'Employee').forEach(u => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.style.padding = '4px 0';
+      row.style.borderBottom = '1px solid #e5e7eb';
+
+      if (!editing) {
+        row.innerHTML = `
+          <div><strong>${u.id}</strong> &nbsp; ${u.name}</div>
+          <span class="chip">Employee</span>
+        `;
+      } else {
+        row.innerHTML = `
+          <div>
+            <strong>${u.id}</strong>
+            <input id="emp-name-${u.id}" value="${u.name}" style="width:150px;margin-left:8px;" />
+          </div>
+          <button class="secondary" data-empid="${u.id}">Save</button>
+        `;
+      }
+      wrap.appendChild(row);
+    });
+
+    if (editing) {
+      wrap.querySelectorAll('button[data-empid]').forEach(btn => {
+        btn.onclick = () => {
+          const empId = btn.getAttribute('data-empid');
+          const input = $('emp-name-' + empId);
+          const val = input.value.trim();
+          if (!val) { alert('Name cannot be empty'); return; }
+          const u = users.find(x => x.id === empId);
+          if (u) u.name = val;
+          alert(empId + ' renamed to ' + val);
+          renderEmployeesCard(true);
+          if (currentUser && currentUser.role === 'Manager') {
+            initManagerDropdowns();
+            renderManagerView();
+          }
+        };
+      });
+    }
+  }
+
+  /* ====== 4. Manager rendering ====== */
+
+  function renderManagerView() {
+    const tbody = $('tasks-body');
+    tbody.innerHTML = '';
+
+    const empFilter = $('filter-employee').value;
+    const statusFilter = $('filter-status').value;
+
+    const filtered = tasks.filter(t => {
+      computeFlags(t);
+      if (empFilter && t.assignee !== empFilter) return false;
+      if (statusFilter && t.status !== statusFilter) return false;
+      return true;
+    });
+
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.status === 'Completed').length;
+    const delayed = tasks.filter(t => { computeFlags(t); return t.isDelayed; }).length;
+    const today = todayISO();
+    const dueToday = tasks.filter(t => t.due_date === today && t.status !== 'Completed').length;
+
+    $('sum-total').textContent = total;
+    $('sum-completed').textContent = completed;
+    $('sum-delayed').textContent = delayed;
+    $('sum-today').textContent = dueToday;
+
+    filtered.forEach(t => {
+      const tr = document.createElement('tr');
+      computeFlags(t);
+      if (t.isDelayed) tr.classList.add('delayed-row');
+      else if (t.isDueToday) tr.classList.add('due-today-row');
+
+      tr.innerHTML = `
+        <td>${t._id || ''}</td>
+        <td>${t.title}</td>
+        <td>${getUserName(t.assignee)}</td>
+        <td>${t.priority}</td>
+        <td>${t.start_date}</td>
+        <td>${t.due_date}</td>
+        <td>${t.status}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function initManagerDropdowns() {
+    const selFilter = $('filter-employee');
+    const selAssign = $('task-assignee');
+    selFilter.innerHTML = '<option value="">All</option>';
+    selAssign.innerHTML = '';
+    users
+      .filter(u => u.role === 'Employee')
+      .forEach(u => {
+        const opt1 = document.createElement('option');
+        opt1.value = u.id;
+        opt1.textContent = u.name;
+        selFilter.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = u.id;
+        opt2.textContent = u.name;
+        selAssign.appendChild(opt2);
+      });
+
+    const today = todayISO();
+    $('task-start').value = today;
+    $('task-due').value = today;
+  }
+
+  function openNewTaskForm() {
+    $('new-task-error').classList.add('hidden');
+    $('task-title').value = '';
+    $('task-desc').value = '';
+    const today = todayISO();
+    $('task-start').value = today;
+    $('task-due').value = today;
+    $('new-task-card').classList.remove('hidden');
+  }
+
+  function closeNewTaskForm() {
+    $('new-task-card').classList.add('hidden');
+  }
+
+  async function saveNewTask() {
+    const title = $('task-title').value.trim();
+    const desc = $('task-desc').value.trim();
+    const assignedTo = $('task-assignee').value;
+    const priority = $('task-priority').value;
+    const startDate = $('task-start').value;
+    const dueDate = $('task-due').value;
+    const errBox = $('new-task-error');
+
+    errBox.classList.add('hidden');
+    if (!title || !assignedTo || !startDate || !dueDate) {
+      errBox.textContent = 'Title, assignee, start and due date are required.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+    if (new Date(dueDate) < new Date(startDate)) {
+      errBox.textContent = 'Due date cannot be before start date.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+
+    const taskRow = {
+      title,
+      description: desc,
+      assigned_to: assignedTo,
+      priority,
+      start_date: startDate,
+      due_date: dueDate,
+      status: 'Pending'
+    };
+
+    await createTaskInBackend(taskRow);
+    closeNewTaskForm();
+  }
+
+  /* ====== 5. Employee rendering ====== */
+
+  function renderEmployeeView() {
+    if (!currentUser || currentUser.role !== 'Employee') return;
+
+    const tbody = $('my-tasks-body');
+    tbody.innerHTML = '';
+
+    const myTasks = tasks.filter(t => t.assignee === currentUser.id);
+    myTasks.forEach(computeFlags);
+
+    const total = myTasks.length;
+    const completed = myTasks.filter(t => t.status === 'Completed').length;
+    const delayed = myTasks.filter(t => t.isDelayed).length;
+    const today = todayISO();
+    const dueToday = myTasks.filter(t => t.due_date === today && t.status !== 'Completed').length;
+
+    $('my-total').textContent = total;
+    $('my-completed').textContent = completed;
+    $('my-delayed').textContent = delayed;
+    $('my-today').textContent = dueToday;
+
+    myTasks.forEach(t => {
+      const tr = document.createElement('tr');
+      if (t.isDelayed) tr.classList.add('delayed-row');
+      else if (t.isDueToday) tr.classList.add('due-today-row');
+
+      tr.innerHTML = `
+        <td>${t.title}</td>
+        <td>${t.priority}</td>
+        <td>${t.start_date}</td>
+        <td>${t.due_date}</td>
+        <td>
+          <select data-taskid="${t._id}" class="emp-status">
+            <option value="Pending" ${t.status==='Pending'?'selected':''}>Pending</option>
+            <option value="In Progress" ${t.status==='In Progress'?'selected':''}>In Progress</option>
+            <option value="Completed" ${t.status==='Completed'?'selected':''}>Completed</option>
+          </select>
+        </td>
+        <td>
+          <button class="primary emp-update-btn" data-taskid="${t._id}">Save</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.emp-update-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const taskId = btn.getAttribute('data-taskid');
+        const select = document.querySelector('.emp-status[data-taskid="'+taskId+'"]');
+        const newStatus = select.value;
+        await updateTaskStatusInBackend(taskId, newStatus);
+      };
+    });
+  }
+
+  /* ====== 6. Login / Logout ====== */
+
+  function resetToLogin() {
+    currentUser = null;
+    $('header-user').textContent = '';
+    $('btn-logout').classList.add('hidden');
+    $('manager-section').classList.add('hidden');
+    $('employee-section').classList.add('hidden');
+    $('login-card').classList.remove('hidden');
+    $('login-id').value = '';
+    $('login-pass').value = '';
+  }
+
+  async function doLogin() {
+    const id = $('login-id').value.trim();
+    const pass = $('login-pass').value.trim();
+    const err = $('login-error');
+    err.classList.add('hidden');
+
+    const u = users.find(x => x.id === id && x.password === pass);
+    if (!u) {
+      err.textContent = 'Invalid ID or password';
+      err.classList.remove('hidden');
+      return;
+    }
+    currentUser = u;
+    $('header-user').textContent = u.name + ' (' + u.role + ')';
+    $('btn-logout').classList.remove('hidden');
+    $('login-card').classList.add('hidden');
+
+    if (u.role === 'Manager') {
+      $('manager-section').classList.remove('hidden');
+      initManagerDropdowns();
+      renderEmployeesCard(false);
+      await loadTasksFromBackend();
+    } else {
+      $('employee-section').classList.remove('hidden');
+      await loadTasksFromBackend();
+      renderEmployeeView();
+    }
+  }
+
+  /* ====== 7. Events ====== */
+
+  $('login-btn').addEventListener('click', doLogin);
+  $('btn-logout').addEventListener('click', resetToLogin);
+  $('filter-employee').addEventListener('change', renderManagerView);
+  $('filter-status').addEventListener('change', renderManagerView);
+  $('btn-new-task').addEventListener('click', openNewTaskForm);
+  $('btn-save-task').addEventListener('click', saveNewTask);
+  $('btn-cancel-task').addEventListener('click', closeNewTaskForm);
+
+  $('btn-toggle-edit-emps').addEventListener('click', () => {
+    const btn = $('btn-toggle-edit-emps');
+    const editing = btn.getAttribute('data-editing') === 'true';
+    btn.setAttribute('data-editing', editing ? 'false' : 'true');
+    btn.textContent = editing ? 'Edit names' : 'Done';
+    renderEmployeesCard(!editing);
+    if (editing && currentUser && currentUser.role === 'Manager') {
+      initManagerDropdowns();
+      renderManagerView();
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+good morning u r an expert web developer and a professor aswell please guide me step by step vscode to mongodb and mongo db from new e mail id register
+mongodb 
+
+
+swastik123  pass
+dhavaltasktracker id 
+
+connection string
+
+mongodb+srv://tasktracker:<db_password>@tasktracker.ypcno0t.mongodb.net/?appName=tasktracker
+
+
+mongo db pass word admin
+
+
+
+
+GCOwtFBIb4R6BZH2
+
+string
+
+mongodb+srv://tasktracker:<db_password>@tasktracker.ypcno0t.mongodb.net/?appName=tasktracker
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        09-12-2025     12:19                node_modules
+-a----        09-12-2025     12:45            142 .env
+-a----        09-12-2025     12:19          37289 package-lock.json
+-a----        09-12-2025     12:19            365 package.json
+-a----        09-12-2025     12:34              0 server.js
+
+ans 2
+PS C:\Users\speed\Desktop\Dhaval\SWASTIK TASK TRACKER MAIN\backend> type .env
+PORT=5000
+MONGODB_URI=mongodb+srv://tasktracker@admin:GCOwtFBIb4R6BZH2@cluster0.xxxxx.mongodb.net/swastik_tasks?retryWrites=true&w=majority
+PS C:\Users\speed\Desktop\Dhaval\SWASTIK TASK TRACKER MAIN\backend>
+
+ans 3
+
+PS C:\Users\speed\Desktop\Dhaval\SWASTIK TASK TRACKER MAIN\backend> node -e "require('dotenv').config(); console.log('PORT:', process.env.PORT); console.log('MONGODB:', !!process.env.MONGODB_URI)"
+[dotenv@17.2.3] injecting env (2) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+PORT: 5000
+MONGODB: true
+
+answer 4
+{
+  parsed: {
+    PORT: '5000',
+    MONGODB_URI: 'mongodb+srv://tasktracker@admin:GCOwtFBIb4R6BZH2@cluster0.xxxxx.mongodb.net/swastik_tasks?retryWrites=true&w=majority'
+  }
+}
+PS C:
+
+answer 5
+PS C:\Users\speed\Desktop\Dhaval\SWASTIK TASK TRACKER MAIN\backend> node server.js
+🚀 Starting...
+[dotenv@17.2.3] injecting env (2) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+PORT: ✅
+MONGODB: ✅
+🚀 http://localhost:5000
+❌ MongoDB Error: mongodb+srv URI cannot have port number
+
